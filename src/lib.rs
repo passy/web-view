@@ -459,7 +459,6 @@ impl<'a, T> WebView<'a, T> {
             .expect("A dispatch channel thread panicked while holding mutex to WebView.");
 
         let user_data_ptr = self.user_data_wrapper_ptr();
-        webview_exit(self.inner);
         wrapper_webview_free(self.inner);
         let user_data = *Box::from_raw(user_data_ptr);
         user_data.inner

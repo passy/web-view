@@ -41,7 +41,7 @@ WEBVIEW_API void* webview_get_user_data(webview_t w) {
 }
 
 WEBVIEW_API webview_t webview_new(
-  const char* title, const char* url, 
+  const char* title, const char* url,
   int width, int height, int resizable, int debug, int frameless, int visible, int min_width, int min_height, int hide_instead_of_close,
   webview_external_invoke_cb_t external_invoke_cb, void* userdata) {
 	struct cocoa_webview* wv = (struct cocoa_webview*)calloc(1, sizeof(*wv));
@@ -120,7 +120,7 @@ static void webview_window_will_close(id self, SEL cmd, id notification) {
   We are going to first create an event with the type
   NSApplicationDefined, and zero for all the other properties.
   ***/
-  id event = ((id(*)(id, SEL, id, id, id, double, id, id, id, id, id))objc_msgSend)((id)objc_getClass("NSEvent"),
+  id event = ((id(*)(id, SEL, int, id, id, double, id, id, id, id, id))objc_msgSend)((id)objc_getClass("NSEvent"),
                   sel_registerName("otherEventWithType:location:modifierFlags:timestamp:windowNumber:context:subtype:data1:data2:"),
                   NSApplicationDefinedEvent,
                   (id)objc_getClass("NSZeroPoint"),
@@ -135,7 +135,7 @@ static void webview_window_will_close(id self, SEL cmd, id notification) {
   event on the application allowing the `webview_loop` to continue
   its current iteration.
   ***/
-  ((id(*)(id, SEL, id, id))objc_msgSend)(app, sel_registerName("postEvent:atStart:"), event, 
+  ((id(*)(id, SEL, id, id))objc_msgSend)(app, sel_registerName("postEvent:atStart:"), event,
                     ((id(*)(id, SEL))objc_msgSend)((id)objc_getClass("NSDate"),
                       sel_registerName("distantPast")));
 }
@@ -176,8 +176,8 @@ static void run_open_panel(id self, SEL cmd, id webView, id parameters,
       openPanel, sel_registerName("setAllowsMultipleSelection:"),
       ((id(*)(id, SEL))objc_msgSend)(parameters, sel_registerName("allowsMultipleSelection")));
 
-  ((id(*)(id, SEL, id))objc_msgSend)(openPanel, sel_registerName("setCanChooseFiles:"), 1);
-  ((id(*)(id, SEL, id))objc_msgSend)(
+  ((id(*)(id, SEL, int))objc_msgSend)(openPanel, sel_registerName("setCanChooseFiles:"), 1);
+  ((id(*)(id, SEL, void (^)(id)))objc_msgSend)(
       openPanel, sel_registerName("beginWithCompletionHandler:"), ^(id result) {
         if (result == (id)NSModalResponseOK) {
           completionHandler(((id(*)(id, SEL))objc_msgSend)(openPanel, sel_registerName("URLs")));
@@ -192,10 +192,10 @@ static void run_save_panel(id self, SEL cmd, id download, id filename,
                                                      id destination)) {
   id savePanel = ((id(*)(id, SEL))objc_msgSend)((id)objc_getClass("NSSavePanel"),
                               sel_registerName("savePanel"));
-  ((id(*)(id, SEL, id))objc_msgSend)(savePanel, sel_registerName("setCanCreateDirectories:"), 1);
+  ((id(*)(id, SEL, int))objc_msgSend)(savePanel, sel_registerName("setCanCreateDirectories:"), 1);
   ((id(*)(id, SEL, id))objc_msgSend)(savePanel, sel_registerName("setNameFieldStringValue:"),
                filename);
-  ((id(*)(id, SEL, id))objc_msgSend)(savePanel, sel_registerName("beginWithCompletionHandler:"),
+  ((id(*)(id, SEL, void (^)(id)))objc_msgSend)(savePanel, sel_registerName("beginWithCompletionHandler:"),
                ^(id result) {
                  if (result == (id)NSModalResponseOK) {
                    id url = ((id(*)(id, SEL))objc_msgSend)(savePanel, sel_registerName("URL"));
@@ -311,7 +311,7 @@ WEBVIEW_API int webview_init(webview_t w) {
                     (IMP)download_failed, "v@:@@");
     objc_registerClassPair(__WKDownloadDelegate);
   }
-  
+
   id downloadDelegate =
       ((id(*)(id, SEL))objc_msgSend)((id)__WKDownloadDelegate, sel_registerName("new"));
 
@@ -327,7 +327,7 @@ WEBVIEW_API int webview_init(webview_t w) {
   }
   id wkPref = ((id(*)(id, SEL))objc_msgSend)((id)__WKPreferences, sel_registerName("new"));
   ((id(*)(id, SEL, id, id))objc_msgSend)(wkPref, sel_registerName("setValue:forKey:"),
-               ((id(*)(id, SEL, id))objc_msgSend)((id)objc_getClass("NSNumber"),
+               ((id(*)(id, SEL, int))objc_msgSend)((id)objc_getClass("NSNumber"),
                             sel_registerName("numberWithBool:"), !!wv->debug),
                ((id(*)(id, SEL, const char*))objc_msgSend)((id)objc_getClass("NSString"),
                             sel_registerName("stringWithUTF8String:"),
@@ -390,7 +390,7 @@ WEBVIEW_API int webview_init(webview_t w) {
                            OBJC_ASSOCIATION_ASSIGN);
 
   id nsTitle =
-      ((id(*)(id, SEL, id))objc_msgSend)((id)objc_getClass("NSString"),
+      ((id(*)(id, SEL, const char*))objc_msgSend)((id)objc_getClass("NSString"),
                    sel_registerName("stringWithUTF8String:"), wv->title);
 
   CGRect r = CGRectMake(0, 0, wv->width, wv->height);
@@ -407,7 +407,7 @@ WEBVIEW_API int webview_init(webview_t w) {
 
   wv->priv.window =
       ((id(*)(id, SEL))objc_msgSend)((id)objc_getClass("NSWindow"), sel_registerName("alloc"));
-  ((id(*)(id, SEL, CGRect, id, id, id))objc_msgSend)(wv->priv.window,
+  ((id(*)(id, SEL, CGRect, int, int, int))objc_msgSend)(wv->priv.window,
                sel_registerName("initWithContentRect:styleMask:backing:defer:"),
                r, style, NSBackingStoreBuffered, 0);
 
@@ -468,8 +468,8 @@ WEBVIEW_API int webview_init(webview_t w) {
   ((id(*)(id, SEL, id))objc_msgSend)(wv->priv.webview, sel_registerName("loadRequest:"),
                ((id(*)(id, SEL, id))objc_msgSend)((id)objc_getClass("NSURLRequest"),
                             sel_registerName("requestWithURL:"), nsURL));
-  ((id(*)(id, SEL, id))objc_msgSend)(wv->priv.webview, sel_registerName("setAutoresizesSubviews:"), 1);
-  ((id(*)(id, SEL, id))objc_msgSend)(wv->priv.webview, sel_registerName("setAutoresizingMask:"),
+  ((id(*)(id, SEL, int))objc_msgSend)(wv->priv.webview, sel_registerName("setAutoresizesSubviews:"), 1);
+  ((id(*)(id, SEL, int))objc_msgSend)(wv->priv.webview, sel_registerName("setAutoresizingMask:"),
                (NSViewWidthSizable | NSViewHeightSizable));
   ((id(*)(id, SEL, id))objc_msgSend)(((id(*)(id, SEL))objc_msgSend)(wv->priv.window, sel_registerName("contentView")),
                sel_registerName("addSubview:"), wv->priv.webview);
@@ -477,7 +477,7 @@ WEBVIEW_API int webview_init(webview_t w) {
   if (wv->visible) {
     ((id(*)(id, SEL))objc_msgSend)(wv->priv.window, sel_registerName("orderFrontRegardless"));
   }
-  
+
   ((id(*)(id, SEL, CGSize))objc_msgSend)(wv->priv.window, sel_registerName("setMinSize:"), CGSizeMake(wv->min_width, wv->min_height));
 
   ((id(*)(id, SEL, id))objc_msgSend)(((id(*)(id, SEL))objc_msgSend)((id)objc_getClass("NSApplication"),
@@ -489,7 +489,7 @@ WEBVIEW_API int webview_init(webview_t w) {
                             sel_registerName("sharedApplication")),
                sel_registerName("finishLaunching"));
 
-  ((id(*)(id, SEL, id))objc_msgSend)(((id(*)(id, SEL))objc_msgSend)((id)objc_getClass("NSApplication"),
+  ((id(*)(id, SEL, int))objc_msgSend)(((id(*)(id, SEL))objc_msgSend)((id)objc_getClass("NSApplication"),
                             sel_registerName("sharedApplication")),
                sel_registerName("activateIgnoringOtherApps:"), 1);
 
@@ -524,7 +524,7 @@ WEBVIEW_API int webview_init(webview_t w) {
 
   item = create_menu_item(get_nsstring("Hide Others"),
                           "hideOtherApplications:", "h");
-  ((id(*)(id, SEL, id))objc_msgSend)(item, sel_registerName("setKeyEquivalentModifierMask:"),
+  ((id(*)(id, SEL, int))objc_msgSend)(item, sel_registerName("setKeyEquivalentModifierMask:"),
                (NSEventModifierFlagOption | NSEventModifierFlagCommand));
   ((id(*)(id, SEL, id))objc_msgSend)(appMenu, sel_registerName("addItem:"), item);
 
@@ -557,7 +557,7 @@ WEBVIEW_API int webview_loop(webview_t w, int blocking) {
                                       sel_registerName("distantPast")));
   id app = ((id(*)(id, SEL))objc_msgSend)((id)objc_getClass("NSApplication"),
                    sel_registerName("sharedApplication"));
-  id event = ((id(*)(id, SEL, id, id, id, id))objc_msgSend)(
+  id event = ((id(*)(id, SEL, long, id, id, bool))objc_msgSend)(
       app,
       sel_registerName("nextEventMatchingMask:untilDate:inMode:dequeue:"),
       ULONG_MAX, until,
@@ -623,7 +623,7 @@ WEBVIEW_API void webview_set_minimized(webview_t w, int minimize) {
   } else {
     ((id(*)(id, SEL, id))objc_msgSend)(wv->priv.window, sel_registerName("deminiaturize:"), NULL);
   }
-  
+
 }
 
 WEBVIEW_API void webview_set_visible(webview_t w, int visible) {
@@ -658,8 +658,8 @@ WEBVIEW_API void webview_set_color(webview_t w, uint8_t r, uint8_t g,
                               sel_registerName("appearanceNamed:"),
                               get_nsstring("NSAppearanceNameVibrantLight")));
   }
-  ((id(*)(id, SEL, id))objc_msgSend)(wv->priv.window, sel_registerName("setOpaque:"), 0);
-  ((id(*)(id, SEL, id))objc_msgSend)(wv->priv.window,
+  ((id(*)(id, SEL, int))objc_msgSend)(wv->priv.window, sel_registerName("setOpaque:"), 0);
+  ((id(*)(id, SEL, int))objc_msgSend)(wv->priv.window,
                sel_registerName("setTitlebarAppearsTransparent:"), 1);
 }
 

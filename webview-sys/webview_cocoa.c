@@ -659,8 +659,8 @@ WEBVIEW_API void webview_set_color(webview_t w, uint8_t r, uint8_t g,
                               get_nsstring("NSAppearanceNameVibrantLight")));
   }
   ((id(*)(id, SEL, int))objc_msgSend)(wv->priv.window, sel_registerName("setOpaque:"), 0);
-  ((id(*)(id, SEL, int))objc_msgSend)(wv->priv.window,
-               sel_registerName("setTitlebarAppearsTransparent:"), 1);
+  // ((id(*)(id, SEL, int))objc_msgSend)(wv->priv.window,
+  //              sel_registerName("setTitlebarAppearsTransparent:"), 0);
 }
 
 WEBVIEW_API void webview_set_zoom_level(webview_t w, const double percentage) {
